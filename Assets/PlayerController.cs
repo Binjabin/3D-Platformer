@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] GameObject planetObject;
+
     float xInput;
     float zInput;
 
@@ -12,7 +14,8 @@ public class PlayerController : MonoBehaviour
     Vector3 finalVelocity;
     Vector3 desiredVelocity;
 
-    public GravityAttractor gravityScript;
+    Vector3 gravityUp;
+
 
     Vector3 currentVelocity;
     bool desiredJump;
@@ -21,10 +24,15 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] float moveSpeed;
 
+    float minGroundDotProduct;
+
+    
+
     Rigidbody rigidbody;
 
     [SerializeField] float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
+    [SerializeField, Range(0f, 90f)] float maxGroundAngle = 25f;
     int jumpPhase;
 
     bool onGround;
@@ -38,6 +46,9 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        gravityUp = (rigidbody.position - planetObject.transform.position).normalized;
+        
+
         xInput = Input.GetAxisRaw("Horizontal");
         zInput = Input.GetAxisRaw("Vertical");
 
@@ -45,6 +56,8 @@ public class PlayerController : MonoBehaviour
         desiredVelocity = inputDirection * moveSpeed;
 
         desiredJump |= Input.GetButtonDown("Jump");
+
+
 
     }
 
@@ -102,8 +115,7 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            onGround |= normal == gravityScript.gravityUp;
-
+            onGround |= (minGroundDotProduct <= Vector3.Dot(gravityUp, normal));
 
         }
     }
@@ -115,5 +127,14 @@ public class PlayerController : MonoBehaviour
         {
             jumpPhase = 0;
         }
+    }
+    void OnValidate()
+    {
+        minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+    }
+
+    void Awake()
+    {
+        OnValidate();
     }
 }
