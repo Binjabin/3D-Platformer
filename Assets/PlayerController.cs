@@ -16,6 +16,8 @@ public class PlayerController : MonoBehaviour
 
     Vector3 gravityUp;
 
+    Vector3 contactNormal;
+
 
     Vector3 currentVelocity;
     bool desiredJump;
@@ -93,7 +95,7 @@ public class PlayerController : MonoBehaviour
             {
                 jumpSpeed = Mathf.Max(jumpSpeed - currentVelocity.y, 0f);
             }
-            currentVelocity.y += jumpSpeed;
+            currentVelocity += jumpSpeed * transform.InverseTransformDirection(contactNormal);
         }
     }
 
@@ -115,7 +117,12 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            onGround |= (minGroundDotProduct <= Vector3.Dot(gravityUp, normal));
+            if (minGroundDotProduct <= Vector3.Dot(gravityUp, normal))
+            {
+                onGround = true;
+                contactNormal = normal;
+            }
+            Debug.Log(Vector3.Dot(gravityUp, normal));
 
         }
     }
@@ -126,6 +133,10 @@ public class PlayerController : MonoBehaviour
         if (onGround)
         {
             jumpPhase = 0;
+        }
+        else
+        {
+            contactNormal = gravityUp;
         }
     }
     void OnValidate()
