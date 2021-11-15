@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] GameObject planetObject;
-
     float xInput;
     float zInput;
 
@@ -14,10 +12,9 @@ public class PlayerController : MonoBehaviour
     Vector3 finalVelocity;
     Vector3 desiredVelocity;
 
-    Vector3 gravityUp;
-
+    float minGroundDotProduct;
+    float maxGroundAngle;
     Vector3 contactNormal;
-
 
     Vector3 currentVelocity;
     bool desiredJump;
@@ -26,52 +23,51 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] float moveSpeed;
 
-    float minGroundDotProduct;
-
-    
-
     Rigidbody rigidbody;
 
     [SerializeField] float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
-    [SerializeField, Range(0f, 90f)] float maxGroundAngle = 25f;
     int jumpPhase;
 
-    bool onGround;
+    [SerializeField] int groundContactCount;
+    bool OnGround => groundContactCount > 0;
+
+    Vector3 gravityUp;
+    [SerializeField] GameObject planetObject;
 
     // Start is called before the first frame update
+
+    void OnValidate()
+    {
+        minGroundDotProduct = Mathf.Cos(maxGroundAngle);
+    }
+
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
+        OnValidate();
     }
 
     // Update is called once per frame
     void Update()
     {
-        gravityUp = (rigidbody.position - planetObject.transform.position).normalized;
-        
-
         xInput = Input.GetAxisRaw("Horizontal");
         zInput = Input.GetAxisRaw("Vertical");
+        gravityUp = (transform.position - planetObject.transform.position).normalized;
 
         inputDirection = new Vector3(xInput, 0, zInput).normalized;
         desiredVelocity = inputDirection * moveSpeed;
 
         desiredJump |= Input.GetButtonDown("Jump");
 
-
-
     }
 
     void FixedUpdate()
     {
         UpdateState();
-        float acceleration = onGround ? maxAcceleration : maxAirAcceleration;
-        maxSpeedChange = acceleration * Time.fixedDeltaTime;
-        currentVelocity.x = Mathf.MoveTowards(currentVelocity.x, desiredVelocity.x, maxSpeedChange);
-        currentVelocity.z = Mathf.MoveTowards(currentVelocity.z, desiredVelocity.z, maxSpeedChange);
+        AdjustVelocity();
 
-        if(desiredJump)
+        if (desiredJump)
         {
             desiredJump = false;
             Jump();
@@ -82,20 +78,21 @@ public class PlayerController : MonoBehaviour
         finalVelocity = transform.TransformDirection(currentVelocity);
 
         rigidbody.velocity = finalVelocity;
-        onGround = false;
+        ClearState();
     }
 
     void Jump()
     {
-        if(onGround || jumpPhase < maxAirJumps)
+        if (OnGround || jumpPhase < maxAirJumps)
         {
             jumpPhase += 1;
             float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
-            if (currentVelocity.y > 0f)
+            float alignedSpeed = Vector3.Dot(currentVelocity, contactNormal);
+            if (alignedSpeed > 0f)
             {
-                jumpSpeed = Mathf.Max(jumpSpeed - currentVelocity.y, 0f);
+                jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
             }
-            currentVelocity += jumpSpeed * transform.InverseTransformDirection(contactNormal);
+            currentVelocity += contactNormal * jumpSpeed;
         }
     }
 
@@ -117,12 +114,13 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            if (minGroundDotProduct <= Vector3.Dot(gravityUp, normal))
+
+            if (Vector3.Dot(gravityUp, normal) >= minGroundDotProduct)
             {
-                onGround = true;
-                contactNormal = normal;
+                contactNormal += normal;
+                groundContactCount += 1;
             }
-            Debug.Log(Vector3.Dot(gravityUp, normal));
+
 
         }
     }
@@ -130,22 +128,45 @@ public class PlayerController : MonoBehaviour
     void UpdateState()
     {
         currentVelocity = transform.InverseTransformDirection(rigidbody.velocity);
-        if (onGround)
+        if (OnGround)
         {
             jumpPhase = 0;
+            if (groundContactCount > 1)
+            {
+                contactNormal.Normalize();
+            }
         }
         else
         {
-            contactNormal = gravityUp;
+            contactNormal = Vector3.up;
         }
     }
-    void OnValidate()
+
+    Vector3 ProjectOnContactPlane(Vector3 vector)
     {
-        minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+        Vector3 flattenedNormal = transform.InverseTransformDirection(contactNormal);
+        return vector - flattenedNormal * Vector3.Dot(vector, flattenedNormal);
     }
 
-    void Awake()
+    void AdjustVelocity()
     {
-        OnValidate();
+        Vector3 xAxis = ProjectOnContactPlane(Vector3.right).normalized;
+        Vector3 zAxis = ProjectOnContactPlane(Vector3.forward).normalized;
+
+        float currentX = Vector3.Dot(currentVelocity, xAxis);
+        float currentZ = Vector3.Dot(currentVelocity, zAxis);
+
+        float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
+        float maxSpeedChange = acceleration * Time.deltaTime;
+
+        float newX = Mathf.MoveTowards(currentX, desiredVelocity.x, maxSpeedChange);
+        float newZ = Mathf.MoveTowards(currentZ, desiredVelocity.z, maxSpeedChange);
+
+        currentVelocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
+    }
+    void ClearState()
+    {
+        groundContactCount = 0;
+        contactNormal = Vector3.zero;
     }
 }

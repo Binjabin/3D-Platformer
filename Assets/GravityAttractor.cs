@@ -5,7 +5,7 @@ using UnityEngine;
 public class GravityAttractor : MonoBehaviour
 {
     public float gravity = -9.8f;
-    public Vector3 gravityUp;
+    Vector3 gravityUp;
 
 
     public void Attract(Transform body)
