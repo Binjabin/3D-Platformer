@@ -12,9 +12,13 @@ public class PlayerController : MonoBehaviour
     Vector3 finalVelocity;
     Vector3 desiredVelocity;
 
-    float minGroundDotProduct;
-    float maxGroundAngle;
-    Vector3 contactNormal;
+    float minGroundDotProduct, minStairsDotProduct;
+    [SerializeField] float maxGroundAngle, maxStairsAngle = 50f;
+
+    Vector3 contactNormal, steepNormal;
+    [SerializeField] int groundContactCount, steepContactCount;
+    bool OnGround => groundContactCount > 0;
+    bool OnSteep => steepContactCount > 0;
 
     Vector3 currentVelocity;
     bool desiredJump;
@@ -29,17 +33,23 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
     int jumpPhase;
 
-    [SerializeField] int groundContactCount;
-    bool OnGround => groundContactCount > 0;
+    
 
     Vector3 gravityUp;
     [SerializeField] GameObject planetObject;
+    [SerializeField, Range(0f, 100f)] float maxSnapSpeed = 100f;
+
+    [SerializeField, Min(0f)] float probeDistance = 1f;
+    [SerializeField] LayerMask probeMask = -1, stairsMask = -1;
+
+    int stepsSinceLastGrounded, stepsSinceLastJump;
 
     // Start is called before the first frame update
 
     void OnValidate()
     {
-        minGroundDotProduct = Mathf.Cos(maxGroundAngle);
+        minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+        minStairsDotProduct = Mathf.Cos(maxStairsAngle * Mathf.Deg2Rad);
     }
 
     void Start()
@@ -86,6 +96,7 @@ public class PlayerController : MonoBehaviour
         if (OnGround || jumpPhase < maxAirJumps)
         {
             jumpPhase += 1;
+            stepsSinceLastJump = 0;
             float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
             float alignedSpeed = Vector3.Dot(currentVelocity, contactNormal);
             if (alignedSpeed > 0f)
@@ -111,25 +122,32 @@ public class PlayerController : MonoBehaviour
 
     void EvaluateCollision(Collision collision)
     {
+        float minDot = GetMinDot(collision.gameObject.layer);
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
 
-            if (Vector3.Dot(gravityUp, normal) >= minGroundDotProduct)
+            if (Vector3.Dot(gravityUp, normal) >= minDot)
             {
                 contactNormal += normal;
                 groundContactCount += 1;
             }
-
+            else if (Vector3.Dot(gravityUp, normal) > -0.01f)
+            {
+                steepContactCount += 1;
+                steepNormal += normal;
+            }
 
         }
     }
-
     void UpdateState()
     {
+        stepsSinceLastGrounded += 1;
+        stepsSinceLastJump += 1;
         currentVelocity = transform.InverseTransformDirection(rigidbody.velocity);
-        if (OnGround)
+        if (OnGround || SnapToGround() || CheckSteepContacts())
         {
+            stepsSinceLastGrounded = 0;
             jumpPhase = 0;
             if (groundContactCount > 1)
             {
@@ -167,6 +185,60 @@ public class PlayerController : MonoBehaviour
     void ClearState()
     {
         groundContactCount = 0;
+        steepContactCount = 0;
         contactNormal = Vector3.zero;
+        steepNormal = Vector3.zero;
+    }
+
+    bool SnapToGround()
+    {
+        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2)
+        {
+            return false;
+        }
+        float speed = currentVelocity.magnitude;
+        if (speed > maxSnapSpeed)
+        {
+            return false;
+        }
+        if (!Physics.Raycast(rigidbody.position, -gravityUp, out RaycastHit hit, probeDistance, probeMask))
+        {
+            return false;
+        }
+        if (hit.normal.y < GetMinDot(hit.collider.gameObject.layer))
+        {
+            return false;
+        }
+        groundContactCount = 1;
+        contactNormal = hit.normal;
+        
+        float dot = Vector3.Dot(currentVelocity, hit.normal);
+        if (dot > 0f)
+        {
+            currentVelocity = (currentVelocity - hit.normal * dot).normalized * speed;
+        }
+        return true;
+
+
+    }
+
+    float GetMinDot(int layer)
+    {
+        return (stairsMask & (1 << layer)) == 0 ? minGroundDotProduct : minStairsDotProduct;
+    }
+
+    bool CheckSteepContacts()
+    {
+        if (steepContactCount > 1)
+        {
+            steepNormal.Normalize();
+            if (steepNormal.y >= minGroundDotProduct)
+            {
+                groundContactCount = 1;
+                contactNormal = steepNormal;
+                return true;
+            }
+        }
+        return false;
     }
 }
