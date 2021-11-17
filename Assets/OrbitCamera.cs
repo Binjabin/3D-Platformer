@@ -9,6 +9,12 @@ public class OrbitCamera : MonoBehaviour
     [SerializeField, Min(0f)] float focusRadius = 1f;
     [SerializeField, Range(0f, 1f)] float focusCentering = 0.5f;
 
+    [SerializeField] GameObject player;
+    [SerializeField] GameObject planet;
+    Vector3 gravityUp;
+
+    Quaternion orbitRotation;
+
 
     Vector2 orbitAngles = new Vector2(45f, 0f);
 
@@ -23,6 +29,7 @@ public class OrbitCamera : MonoBehaviour
     {
         focusPoint = focus.position;
         transform.localRotation = Quaternion.Euler(orbitAngles);
+        transform.localRotation = orbitRotation;
     }
 
     // Start is called before the first frame update
@@ -34,20 +41,23 @@ public class OrbitCamera : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
+        gravityAlignment = Quaternion.FromToRotation(Vector3.up, gravityUp);
+
         UpdateFocusPoint();
-        Quaternion lookRotation;
         if (ManualRotation())
         {
             ConstrainAngles();
-            lookRotation = Quaternion.Euler(orbitAngles);
+            orbitRotation = Quaternion.Euler(orbitAngles);
         }
         else
         {
-            lookRotation = transform.localRotation;
+            orbitRotation = transform.localRotation;
         }
+        Quaternion lookRotation = gravityAlignment * orbitRotation;
         Vector3 lookDirection = lookRotation * Vector3.forward;
         Vector3 lookPosition = focusPoint - lookDirection * distance;
         transform.SetPositionAndRotation(lookPosition, lookRotation);
+        
     }
 
     void UpdateFocusPoint()
@@ -107,5 +117,10 @@ public class OrbitCamera : MonoBehaviour
         {
             orbitAngles.y -= 360f;
         }
+    }
+
+    void Update()
+    {
+        gravityUp = player.transform.position - planet.transform.position;
     }
 }
