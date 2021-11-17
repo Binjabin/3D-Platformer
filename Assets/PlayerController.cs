@@ -93,18 +93,43 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
-        if (OnGround || jumpPhase < maxAirJumps)
+        Vector3 jumpDirection;
+
+        if(OnGround)
         {
-            jumpPhase += 1;
-            stepsSinceLastJump = 0;
-            float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
-            float alignedSpeed = Vector3.Dot(currentVelocity, contactNormal);
-            if (alignedSpeed > 0f)
-            {
-                jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
-            }
-            currentVelocity += contactNormal * jumpSpeed;
+            jumpDirection = contactNormal;
         }
+        else if(OnSteep)
+        {
+            jumpDirection = steepNormal;
+            jumpPhase = 0;
+        }
+        else if(maxAirJumps > 0 && jumpPhase <= maxAirJumps)
+        {
+            if (jumpPhase == 0)
+            {
+                jumpPhase = 1;
+            }
+            jumpDirection = contactNormal;
+        }
+        else
+        {
+            return;
+        }
+        jumpPhase += 1;
+        if(stepsSinceLastJump > 1)
+        {
+            jumpPhase = 0;
+        }
+        stepsSinceLastJump = 0;
+        float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
+        jumpDirection = (jumpDirection + gravityUp).normalized;
+        float alignedSpeed = Vector3.Dot(currentVelocity, jumpDirection);
+        if (alignedSpeed > 0f)
+        {
+            jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
+        }
+        currentVelocity += jumpDirection * jumpSpeed;
     }
 
 
