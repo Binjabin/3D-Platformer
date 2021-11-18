@@ -33,9 +33,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
     int jumpPhase;
 
-    
+    Vector3 xAxis;
+    Vector3 zAxis;
 
-    Vector3 gravityUp;
+    Vector3 gravityUp, gravityForward, gravityRight;
     [SerializeField] GameObject planetObject;
     [SerializeField, Range(0f, 100f)] float maxSnapSpeed = 100f;
 
@@ -43,6 +44,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] LayerMask probeMask = -1, stairsMask = -1;
 
     int stepsSinceLastGrounded, stepsSinceLastJump;
+
+    [SerializeField]Transform playerInputSpace = default;
 
     // Start is called before the first frame update
 
@@ -65,8 +68,21 @@ public class PlayerController : MonoBehaviour
         zInput = Input.GetAxisRaw("Vertical");
         gravityUp = (transform.position - planetObject.transform.position).normalized;
 
+        
+        
         inputDirection = new Vector3(xInput, 0, zInput).normalized;
-        desiredVelocity = inputDirection * moveSpeed;
+
+        if (playerInputSpace) 
+        {
+			gravityRight = ProjectDirectionOnPlane(playerInputSpace.right, gravityUp);
+			gravityForward = ProjectDirectionOnPlane(playerInputSpace.forward, gravityUp);
+		}
+		else 
+        {
+			gravityRight = ProjectDirectionOnPlane(Vector3.right, gravityUp);
+			gravityForward = ProjectDirectionOnPlane(Vector3.forward, gravityUp);
+		}
+		desiredVelocity = new Vector3(inputDirection.x, 0f, inputDirection.z) * moveSpeed;
 
         desiredJump |= Input.GetButtonDown("Jump");
 
@@ -185,16 +201,16 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    Vector3 ProjectOnContactPlane(Vector3 vector)
+    Vector3 ProjectDirectionOnPlane (Vector3 direction, Vector3 normal) 
     {
-        Vector3 flattenedNormal = transform.InverseTransformDirection(contactNormal);
-        return vector - flattenedNormal * Vector3.Dot(vector, flattenedNormal);
-    }
+		return (direction - normal * Vector3.Dot(direction, normal)).normalized;
+	}
 
     void AdjustVelocity()
     {
-        Vector3 xAxis = ProjectOnContactPlane(Vector3.right).normalized;
-        Vector3 zAxis = ProjectOnContactPlane(Vector3.forward).normalized;
+        xAxis = ProjectDirectionOnPlane(gravityRight, contactNormal);
+		zAxis = ProjectDirectionOnPlane(gravityForward, contactNormal);
+
 
         float currentX = Vector3.Dot(currentVelocity, xAxis);
         float currentZ = Vector3.Dot(currentVelocity, zAxis);
