@@ -16,9 +16,12 @@ public class OrbitCamera : MonoBehaviour
     [SerializeField] GameObject planet;
 
     [SerializeField] Transform playerInputSpace = default;
+
+    [SerializeField] LayerMask obstructionMask = -1;
     Vector3 gravityUp;
 
-    
+    Camera regularCamera;
+
 
     Quaternion orbitRotation;
 
@@ -37,6 +40,7 @@ public class OrbitCamera : MonoBehaviour
 
     void Awake()
     {
+        regularCamera = GetComponent<Camera>();
         focusPoint = focus.position;
         transform.localRotation = Quaternion.Euler(orbitAngles);
         transform.localRotation = orbitRotation;
@@ -62,6 +66,21 @@ public class OrbitCamera : MonoBehaviour
         Quaternion lookRotation = gravityAlignment * orbitRotation;
         Vector3 lookDirection = lookRotation * Vector3.forward;
         Vector3 lookPosition = focusPoint - lookDirection * distance;
+
+        Vector3 rectOffset = lookDirection * regularCamera.nearClipPlane;
+		Vector3 rectPosition = lookPosition + rectOffset;
+		Vector3 castFrom = focus.position;
+		Vector3 castLine = rectPosition - castFrom;
+		float castDistance = castLine.magnitude;
+		Vector3 castDirection = castLine / castDistance;
+
+		if (Physics.BoxCast(castFrom, CameraHalfExtends, castDirection, out RaycastHit hit, lookRotation, castDistance, obstructionMask))
+        {
+            rectPosition = castFrom + castDirection * hit.distance;
+			lookPosition = rectPosition - rectOffset;
+		}
+
+
         transform.SetPositionAndRotation(lookPosition, lookRotation);
         
     }
@@ -126,10 +145,13 @@ public class OrbitCamera : MonoBehaviour
 		}
         float headingAngle = GetAngle(movement / Mathf.Sqrt(movementDeltaSqr));
         float deltaAbs = Mathf.Abs(Mathf.DeltaAngle(orbitAngles.y, headingAngle));
-        float rotationChange = rotationSpeed * Time.unscaledDeltaTime;
+        float rotationChange = rotationSpeed * Mathf.Min(Time.unscaledDeltaTime, movementDeltaSqr);;
         if (deltaAbs < alignSmoothRange) 
         {
 			rotationChange *= deltaAbs / alignSmoothRange;
+		}
+        else if (180f - deltaAbs < alignSmoothRange) {
+			rotationChange *= (180f - deltaAbs) / alignSmoothRange;
 		}
 		orbitAngles.y = Mathf.MoveTowardsAngle(orbitAngles.y, headingAngle, rotationChange);;
 
@@ -164,5 +186,15 @@ public class OrbitCamera : MonoBehaviour
         gravityUp = player.transform.position - planet.transform.position;
     }
 
-
+    Vector3 CameraHalfExtends 
+    {
+		get 
+        {
+			Vector3 halfExtends;
+			halfExtends.y = regularCamera.nearClipPlane * Mathf.Tan(0.5f * Mathf.Deg2Rad * regularCamera.fieldOfView);
+			halfExtends.x = halfExtends.y * regularCamera.aspect;
+			halfExtends.z = 0f;
+			return halfExtends;
+		}
+	}
 }

@@ -101,9 +101,7 @@ public class PlayerController : MonoBehaviour
 
 
 
-        finalVelocity = transform.TransformDirection(currentVelocity);
-
-        rigidbody.velocity = finalVelocity;
+        rigidbody.velocity = currentVelocity;
         ClearState();
     }
 
@@ -185,7 +183,7 @@ public class PlayerController : MonoBehaviour
     {
         stepsSinceLastGrounded += 1;
         stepsSinceLastJump += 1;
-        currentVelocity = transform.InverseTransformDirection(rigidbody.velocity);
+        currentVelocity = rigidbody.velocity;
         if (OnGround || SnapToGround() || CheckSteepContacts())
         {
             stepsSinceLastGrounded = 0;
