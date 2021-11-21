@@ -4,8 +4,14 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] GameObject playerVisuals;
+    Animator playerAnimator;
+    
     float xInput;
     float zInput;
+
+    float currentX;
+    float currentZ;
 
     Vector3 inputDirection;
     Vector3 moveAmount;
@@ -58,7 +64,28 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
+        playerAnimator = playerVisuals.GetComponent<Animator>();
         OnValidate();
+    }
+
+    void DoVisuals()
+    {
+        inputDirection = new Vector3(xInput, 0, zInput).normalized;
+        if(inputDirection != Vector3.zero)
+        {
+            Quaternion visualsTargetRotation = Quaternion.LookRotation(currentX * xAxis + currentZ * zAxis);
+            Quaternion newRotation = Quaternion.Lerp(playerVisuals.transform.localRotation, visualsTargetRotation, Time.deltaTime * 5f);
+            playerVisuals.transform.localEulerAngles = new Vector3(0, newRotation.eulerAngles.y, 0);
+        }
+
+        if(currentX > 0.1f || currentX < -0.1f || currentZ > 0.1f || currentZ < -0.1f)
+        {
+            playerAnimator.SetBool("isWalking", true);
+        }
+        else
+        {
+            playerAnimator.SetBool("isWalking", false);
+        }
     }
 
     // Update is called once per frame
@@ -68,9 +95,6 @@ public class PlayerController : MonoBehaviour
         zInput = Input.GetAxisRaw("Vertical");
         gravityUp = (transform.position - planetObject.transform.position).normalized;
 
-        
-        
-        inputDirection = new Vector3(xInput, 0, zInput).normalized;
 
         if (playerInputSpace) 
         {
@@ -92,7 +116,7 @@ public class PlayerController : MonoBehaviour
     {
         UpdateState();
         AdjustVelocity();
-
+        DoVisuals();
         if (desiredJump)
         {
             desiredJump = false;
@@ -210,15 +234,19 @@ public class PlayerController : MonoBehaviour
 		zAxis = ProjectDirectionOnPlane(gravityForward, contactNormal);
 
 
-        float currentX = Vector3.Dot(currentVelocity, xAxis);
-        float currentZ = Vector3.Dot(currentVelocity, zAxis);
+        currentX = Vector3.Dot(currentVelocity, xAxis);
+        currentZ = Vector3.Dot(currentVelocity, zAxis);
 
+
+
+        
         float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
         float maxSpeedChange = acceleration * Time.deltaTime;
 
         float newX = Mathf.MoveTowards(currentX, desiredVelocity.x, maxSpeedChange);
         float newZ = Mathf.MoveTowards(currentZ, desiredVelocity.z, maxSpeedChange);
 
+        
         currentVelocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
     }
     void ClearState()
