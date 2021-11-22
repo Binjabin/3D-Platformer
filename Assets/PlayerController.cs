@@ -81,10 +81,21 @@ public class PlayerController : MonoBehaviour
         if(currentX > 0.1f || currentX < -0.1f || currentZ > 0.1f || currentZ < -0.1f)
         {
             playerAnimator.SetBool("isWalking", true);
+            float currentWalkSpeed = (new Vector3(currentX, 0, currentZ)).magnitude;
+            playerAnimator.SetFloat("walkSpeed", currentWalkSpeed / 5);
         }
         else
         {
             playerAnimator.SetBool("isWalking", false);
+            playerAnimator.SetFloat("walkSpeed", 0);
+        }
+        if(groundContactCount > 0)
+        {
+            playerAnimator.SetBool("isGrounded", true);
+        }
+        else
+        {
+            playerAnimator.SetBool("isGrounded", false);
         }
     }
 
@@ -129,10 +140,12 @@ public class PlayerController : MonoBehaviour
         ClearState();
     }
 
+
+
     void Jump()
     {
+        playerAnimator.SetTrigger("Jump");
         Vector3 jumpDirection;
-
         if(OnGround)
         {
             jumpDirection = contactNormal;
@@ -152,8 +165,10 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            
             return;
         }
+
         jumpPhase += 1;
         if(stepsSinceLastJump > 1)
         {
