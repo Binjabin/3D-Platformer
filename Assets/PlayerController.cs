@@ -53,6 +53,11 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField]Transform playerInputSpace = default;
 
+
+
+    [SerializeField] float currentEnergy;
+    [SerializeField] float maxEnergy;
+
     // Start is called before the first frame update
 
     void OnValidate()
@@ -89,7 +94,7 @@ public class PlayerController : MonoBehaviour
             playerAnimator.SetBool("isWalking", false);
             playerAnimator.SetFloat("walkSpeed", 0);
         }
-        if(groundContactCount > 0)
+        if(groundContactCount > 0 || Physics.Raycast(rigidbody.position, -gravityUp, out RaycastHit hit, probeDistance, probeMask))
         {
             playerAnimator.SetBool("isGrounded", true);
         }
@@ -323,4 +328,12 @@ public class PlayerController : MonoBehaviour
         }
         return false;
     }
+
+    void ChangeEnergy(float amount)
+    {
+        currentEnergy += amount;
+        currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
+    }
+
+    
 }
