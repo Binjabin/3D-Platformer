@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 5566044403534281056}
   - component: {fileID: 7356685192436169185}
   - component: {fileID: 4487480285444455610}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Icosphere.014
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -58,7 +58,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6695799162927521500}
   m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -12.083412, y: 9.736113, z: 1.6754097}
+  m_LocalPosition: {x: 0, y: 9.54, z: 1.89}
   m_LocalScale: {x: 3.491091, y: 2.2018821, z: 1.608454}
   m_Children: []
   m_Father: {fileID: 470297079625576724}

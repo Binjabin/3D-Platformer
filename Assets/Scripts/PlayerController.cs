@@ -76,7 +76,7 @@ public class PlayerController : MonoBehaviour
     void DoVisuals()
     {
         inputDirection = new Vector3(xInput, 0, zInput).normalized;
-        if(inputDirection != Vector3.zero)
+        if(currentX > 0.1f || currentZ > 0.1f || currentX < -0.1f || currentZ < -0.1f)
         {
             Quaternion visualsTargetRotation = Quaternion.LookRotation(currentX * xAxis + currentZ * zAxis);
             Quaternion newRotation = Quaternion.Lerp(playerVisuals.transform.localRotation, visualsTargetRotation, Time.deltaTime * 5f);
@@ -196,6 +196,7 @@ public class PlayerController : MonoBehaviour
     void OnCollisionEnter(Collision collision)
     {
         EvaluateCollision(collision);
+
     }
 
     void OnCollisionStay(Collision collision)
@@ -336,4 +337,5 @@ public class PlayerController : MonoBehaviour
     }
 
     
+
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class GravityBody : MonoBehaviour
 {
     GravityAttractor planet;
-
+    [SerializeField] Vector3 defaultRelativeRotation = Vector3.zero; 
     void Awake()
     {
         planet = GameObject.FindGameObjectWithTag("Planet").GetComponent<GravityAttractor>();
@@ -18,6 +18,7 @@ public class GravityBody : MonoBehaviour
     void FixedUpdate()
     {
         // Allow this body to be influenced by planet's gravity
-        planet.Attract(transform);
+        planet.Attract(transform, defaultRelativeRotation);
+
     }
 }
