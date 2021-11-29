@@ -19,6 +19,6 @@ public class DaylightCycle : MonoBehaviour
 
     void Start()
     {
-        sun.transform.eulerAngles = new Vector3(90, 0, 0);
+        sun.transform.eulerAngles = new Vector3(50, 0, 0);
     }
 }
