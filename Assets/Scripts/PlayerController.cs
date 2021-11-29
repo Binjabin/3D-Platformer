@@ -57,6 +57,9 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] float currentEnergy;
     [SerializeField] float maxEnergy;
+    [SerializeField] HealthBar healthBar;
+
+    [SerializeField] GameObject sunGameObject;
 
     // Start is called before the first frame update
 
@@ -64,6 +67,7 @@ public class PlayerController : MonoBehaviour
     {
         minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
         minStairsDotProduct = Mathf.Cos(maxStairsAngle * Mathf.Deg2Rad);
+        currentEnergy = maxEnergy;
     }
 
     void Start()
@@ -71,6 +75,7 @@ public class PlayerController : MonoBehaviour
         rigidbody = GetComponent<Rigidbody>();
         playerAnimator = playerVisuals.GetComponent<Animator>();
         OnValidate();
+        healthBar.SetMaxHealth(maxEnergy);
     }
 
     void DoVisuals()
@@ -107,6 +112,8 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        DoCharging();
+
         xInput = Input.GetAxisRaw("Horizontal");
         zInput = Input.GetAxisRaw("Vertical");
         gravityUp = (transform.position - planetObject.transform.position).normalized;
@@ -333,9 +340,30 @@ public class PlayerController : MonoBehaviour
     void ChangeEnergy(float amount)
     {
         currentEnergy += amount;
+
         currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
+        healthBar.SetHealth(currentEnergy);
     }
 
-    
+    void DoCharging()
+    {
+        Vector3 sunRayDirection = (transform.position - sunGameObject.transform.position).normalized;
+        RaycastHit hit;
+        Physics.Raycast(sunGameObject.transform.position, sunRayDirection, out hit, Mathf.Infinity);
+        bool inSun;
+        if (hit.transform.gameObject.tag == "player")
+        {
+            inSun = true;
+            ChangeEnergy(2.5f * Time.deltaTime);
+        }
+        else
+        {
+            inSun = false;
+            if (Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0 || Input.GetKeyDown(KeyCode.Space));
+            {
+                ChangeEnergy(-1f * Time.deltaTime);
+            }
+        }
+    }
 
 }
