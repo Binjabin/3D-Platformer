@@ -359,10 +359,12 @@ public class PlayerController : MonoBehaviour
         else
         {
             inSun = false;
-            if (Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0 || Input.GetKeyDown(KeyCode.Space));
-            {
-                ChangeEnergy(-1f * Time.deltaTime);
-            }
+            ChangeEnergy(-0.5f * Time.deltaTime);
+            
+        }
+        if (Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0 || Input.GetKeyDown(KeyCode.Space));
+        {
+            ChangeEnergy(-1f * Time.deltaTime);
         }
     }
 
