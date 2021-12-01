@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class PlayerController : MonoBehaviour
 
     float currentX;
     float currentZ;
+    bool winScene = false;
 
     Vector3 inputDirection;
     Vector3 moveAmount;
@@ -53,13 +55,17 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField]Transform playerInputSpace = default;
 
-
+    float sceneChangeTimer = 0f;
 
     [SerializeField] float currentEnergy;
     [SerializeField] float maxEnergy;
     [SerializeField] HealthBar healthBar;
 
     [SerializeField] GameObject sunGameObject;
+
+    [SerializeField] AudioSource stepSound;
+
+    [SerializeField] LayerMask sunLayerMask;
 
     // Start is called before the first frame update
 
@@ -76,6 +82,7 @@ public class PlayerController : MonoBehaviour
         playerAnimator = playerVisuals.GetComponent<Animator>();
         OnValidate();
         healthBar.SetMaxHealth(maxEnergy);
+        stepSound = GetComponent<AudioSource>();
     }
 
     void DoVisuals()
@@ -92,7 +99,7 @@ public class PlayerController : MonoBehaviour
         {
             playerAnimator.SetBool("isWalking", true);
             float currentWalkSpeed = (new Vector3(currentX, 0, currentZ)).magnitude;
-            playerAnimator.SetFloat("walkSpeed", currentWalkSpeed / 5);
+            playerAnimator.SetFloat("walkSpeed", currentWalkSpeed / 4);
         }
         else
         {
@@ -107,13 +114,38 @@ public class PlayerController : MonoBehaviour
         {
             playerAnimator.SetBool("isGrounded", false);
         }
+        if(currentEnergy < 0.01f)
+        {
+            playerAnimator.SetBool("isGrounded", true);
+            playerAnimator.SetBool("isWalking", false);
+            playerAnimator.SetFloat("walkSpeed", 0);
+            playerAnimator.SetTrigger("Death");
+            moveSpeed = 0;
+            sceneChangeTimer += Time.deltaTime;
+            if(sceneChangeTimer > 5f)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                SceneManager.LoadScene("GameOver");
+            }
+            
+        }
+
+        if(winScene)
+        {
+            sceneChangeTimer += Time.deltaTime;
+            if (sceneChangeTimer > 5f)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                SceneManager.LoadScene("Win");
+            }
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
         DoCharging();
-
+        DoSound();
         xInput = Input.GetAxisRaw("Horizontal");
         zInput = Input.GetAxisRaw("Vertical");
         gravityUp = (transform.position - planetObject.transform.position).normalized;
@@ -133,6 +165,20 @@ public class PlayerController : MonoBehaviour
 
         desiredJump |= Input.GetButtonDown("Jump");
 
+    }
+
+    void DoSound()
+    {
+        if (currentX > 0.1f || currentX < -0.1f || currentZ > 0.1f || currentZ < -0.1f)
+        {
+            if(OnGround == true && stepSound.isPlaying == false)
+            {
+                stepSound.volume = Random.Range(0.7f, 1.3f);
+                stepSound.pitch = Random.Range(0.7f, 1.3f);
+                stepSound.Play();
+            }
+            
+        }
     }
 
     void FixedUpdate()
@@ -349,23 +395,35 @@ public class PlayerController : MonoBehaviour
     {
         Vector3 sunRayDirection = (transform.position - sunGameObject.transform.position).normalized;
         RaycastHit hit;
-        Physics.Raycast(sunGameObject.transform.position, sunRayDirection, out hit, Mathf.Infinity);
+        Physics.Raycast(sunGameObject.transform.position, sunRayDirection, out hit, Mathf.Infinity, sunLayerMask);
         bool inSun;
         if (hit.transform.gameObject.tag == "player")
         {
             inSun = true;
-            ChangeEnergy(2.5f * Time.deltaTime);
+            ChangeEnergy(7.5f * Time.deltaTime);
         }
         else
         {
             inSun = false;
-            ChangeEnergy(-0.5f * Time.deltaTime);
+            ChangeEnergy(-3f * Time.deltaTime);
             
         }
         if (Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0 || Input.GetKeyDown(KeyCode.Space));
         {
-            ChangeEnergy(-1f * Time.deltaTime);
+            ChangeEnergy(-4.5f * Time.deltaTime);
         }
+    }
+
+    public void Win()
+    {
+        playerAnimator.SetBool("isGrounded", true);
+        playerAnimator.SetBool("isWalking", false);
+        playerAnimator.SetFloat("walkSpeed", 0);
+        playerAnimator.SetTrigger("Win");
+        moveSpeed = 0;
+        sceneChangeTimer += Time.deltaTime;
+        winScene = true;
+        
     }
 
 }
