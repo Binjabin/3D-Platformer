@@ -14,7 +14,7 @@ public class Crystal : MonoBehaviour
             visuals.SetActive(false);
             GetComponent<Collider>().enabled = false;
             particles.Play();
-
+            other.gameObject.GetComponent<PlayerController>().ChangeEnergy(10f);
         }
     }
 

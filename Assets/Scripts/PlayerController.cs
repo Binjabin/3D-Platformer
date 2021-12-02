@@ -11,8 +11,8 @@ public class PlayerController : MonoBehaviour
     float xInput;
     float zInput;
 
-    float currentX;
-    float currentZ;
+    public float currentX;
+    public float currentZ;
     bool winScene = false;
 
     Vector3 inputDirection;
@@ -383,7 +383,7 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
-    void ChangeEnergy(float amount)
+    public void ChangeEnergy(float amount)
     {
         currentEnergy += amount;
 
@@ -400,17 +400,16 @@ public class PlayerController : MonoBehaviour
         if (hit.transform.gameObject.tag == "player")
         {
             inSun = true;
-            ChangeEnergy(7.5f * Time.deltaTime);
+            ChangeEnergy(1f * Time.deltaTime);
         }
         else
         {
             inSun = false;
-            ChangeEnergy(-3f * Time.deltaTime);
-            
+            ChangeEnergy(-0.5f * Time.deltaTime);
         }
-        if (Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0 || Input.GetKeyDown(KeyCode.Space));
+        if (currentX > 0.1f || currentZ > 0.1f || currentX < -0.1f || currentZ < -0.1f || Input.GetKeyDown(KeyCode.Space))
         {
-            ChangeEnergy(-4.5f * Time.deltaTime);
+            ChangeEnergy(-1f * Time.deltaTime);
         }
     }
 
