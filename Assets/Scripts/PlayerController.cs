@@ -67,6 +67,7 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] LayerMask sunLayerMask;
 
+    bool jumpEnabled = true;
     // Start is called before the first frame update
 
     void OnValidate()
@@ -122,6 +123,7 @@ public class PlayerController : MonoBehaviour
             playerAnimator.SetTrigger("Death");
             moveSpeed = 0;
             sceneChangeTimer += Time.deltaTime;
+            jumpEnabled = false;
             if(sceneChangeTimer > 5f)
             {
                 Cursor.lockState = CursorLockMode.None;
@@ -202,45 +204,49 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
-        playerAnimator.SetTrigger("Jump");
-        Vector3 jumpDirection;
-        if(OnGround)
+        if(jumpEnabled == true)
         {
-            jumpDirection = contactNormal;
-        }
-        else if(OnSteep)
-        {
-            jumpDirection = steepNormal;
-            jumpPhase = 0;
-        }
-        else if(maxAirJumps > 0 && jumpPhase <= maxAirJumps)
-        {
-            if (jumpPhase == 0)
+            playerAnimator.SetTrigger("Jump");
+            Vector3 jumpDirection;
+            if (OnGround)
             {
-                jumpPhase = 1;
+                jumpDirection = contactNormal;
             }
-            jumpDirection = contactNormal;
-        }
-        else
-        {
-            
-            return;
-        }
+            else if (OnSteep)
+            {
+                jumpDirection = steepNormal;
+                jumpPhase = 0;
+            }
+            else if (maxAirJumps > 0 && jumpPhase <= maxAirJumps)
+            {
+                if (jumpPhase == 0)
+                {
+                    jumpPhase = 1;
+                }
+                jumpDirection = contactNormal;
+            }
+            else
+            {
 
-        jumpPhase += 1;
-        if(stepsSinceLastJump > 1)
-        {
-            jumpPhase = 0;
+                return;
+            }
+
+            jumpPhase += 1;
+            if (stepsSinceLastJump > 1)
+            {
+                jumpPhase = 0;
+            }
+            stepsSinceLastJump = 0;
+            float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
+            jumpDirection = (jumpDirection + gravityUp).normalized;
+            float alignedSpeed = Vector3.Dot(currentVelocity, jumpDirection);
+            if (alignedSpeed > 0f)
+            {
+                jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
+            }
+            currentVelocity += jumpDirection * jumpSpeed;
         }
-        stepsSinceLastJump = 0;
-        float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
-        jumpDirection = (jumpDirection + gravityUp).normalized;
-        float alignedSpeed = Vector3.Dot(currentVelocity, jumpDirection);
-        if (alignedSpeed > 0f)
-        {
-            jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
-        }
-        currentVelocity += jumpDirection * jumpSpeed;
+        
     }
 
 
@@ -400,7 +406,7 @@ public class PlayerController : MonoBehaviour
         if (hit.transform.gameObject.tag == "player")
         {
             inSun = true;
-            ChangeEnergy(1f * Time.deltaTime);
+            ChangeEnergy(2f * Time.deltaTime);
         }
         else
         {
@@ -420,6 +426,7 @@ public class PlayerController : MonoBehaviour
         playerAnimator.SetFloat("walkSpeed", 0);
         playerAnimator.SetTrigger("Win");
         moveSpeed = 0;
+        jumpEnabled = false;
         sceneChangeTimer += Time.deltaTime;
         winScene = true;
         
